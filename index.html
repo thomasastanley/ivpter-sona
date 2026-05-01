@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IVPTER SONA — A Numeral Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1612;
+    --paper: #f4ede0;
+    --paper-shadow: #e8dec9;
+    --rust: #8b3a1f;
+    --gold: #b8893a;
+    --rule: #2a241d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(139,58,31,0.04), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(184,137,58,0.05), transparent 60%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      0deg, transparent 0, transparent 2px,
+      rgba(26,22,18,0.012) 2px, rgba(26,22,18,0.012) 3px
+    );
+    z-index: 1;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* === Header === */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 32px;
+  }
+
+  .ornament {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--rust);
+    letter-spacing: 0.6em;
+    font-size: 0.7rem;
+    margin-bottom: 18px;
+  }
+
+  h1 {
+    font-weight: 500;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    letter-spacing: 0.18em;
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+
+  .subtitle {
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.15rem;
+    opacity: 0.75;
+  }
+
+  /* === Converter === */
+  .converter {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow:
+      0 1px 0 var(--paper-shadow),
+      4px 4px 0 var(--paper-shadow),
+      8px 8px 24px rgba(26,22,18,0.08);
+    padding: 40px 36px;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .converter::before {
+    content: "";
+    position: absolute;
+    top: 8px; left: 8px; right: 8px; bottom: 8px;
+    border: 1px solid var(--rule);
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
+  .field {
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--rust);
+    margin-bottom: 10px;
+  }
+
+  input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 0 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    color: var(--ink);
+    letter-spacing: 0.08em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus { border-bottom-color: var(--rust); }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  input.traditional { color: var(--gold); }
+  input.ivpter      { color: var(--rust); }
+
+  input::placeholder { opacity: 0.3; font-style: italic; font-size: 1.4rem; }
+
+  .breakdown {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink);
+    opacity: 0.55;
+    margin-top: 8px;
+    line-height: 1.6;
+    min-height: 1.2em;
+  }
+
+  /* === Reference Table === */
+  .reference {
+    border: 1px solid var(--rule);
+    padding: 32px 36px;
+    box-shadow: 4px 4px 0 var(--paper-shadow);
+  }
+
+  .reference h2 {
+    font-weight: 500;
+    font-size: 1.4rem;
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 32px;
+  }
+
+  .ref-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px dotted rgba(26,22,18,0.2);
+  }
+
+  .ref-symbol {
+    font-size: 1.7rem;
+    color: var(--rust);
+    letter-spacing: 0.1em;
+  }
+
+  .ref-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  .motto {
+    text-align: center;
+    margin-top: 24px;
+    font-style: italic;
+    font-size: 1.05rem;
+    opacity: 0.7;
+  }
+
+  .motto strong {
+    font-style: normal;
+    color: var(--rust);
+    letter-spacing: 0.15em;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    font-size: 0.85rem;
+    opacity: 0.5;
+    font-style: italic;
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 40px 20px 60px; }
+    .converter, .reference { padding: 28px 22px; }
+    .ref-grid { grid-template-columns: 1fr; }
+    input { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <div class="ornament">· · · ✦ · · ·</div>
+    <h1>IVPTER SONA</h1>
+    <div class="subtitle">A simplified Roman numeral system, base five</div>
+  </header>
+
+  <section class="converter">
+
+    <div class="field">
+      <label for="f-arabic">Arabic numerals</label>
+      <input class="arabic" type="number" id="f-arabic" min="1" max="9765624" placeholder="e.g. 2026" autocomplete="off">
+      <div class="breakdown" id="b-arabic"></div>
+    </div>
+
+    <div class="field">
+      <label for="f-trad">Roman numerals</label>
+      <input class="traditional" type="text" id="f-trad" placeholder="e.g. MMXXVI" autocomplete="off" spellcheck="false">
+      <div class="breakdown" id="b-trad"></div>
+    </div>
+
+    <div class="field">
+      <label for="f-ivpter">Better Roman numerals</label>
+      <input class="ivpter" type="text" id="f-ivpter" placeholder="e.g. EEETPI" autocomplete="off" spellcheck="false">
+      <div class="breakdown" id="b-ivpter"></div>
+    </div>
+
+  </section>
+
+  <section class="reference">
+    <h2>The Symbols</h2>
+    <div class="ref-grid">
+      <div class="ref-row"><span class="ref-symbol">I</span><span class="ref-value">1</span></div>
+      <div class="ref-row"><span class="ref-symbol">R</span><span class="ref-value">3,125</span></div>
+      <div class="ref-row"><span class="ref-symbol">V</span><span class="ref-value">5</span></div>
+      <div class="ref-row"><span class="ref-symbol">S</span><span class="ref-value">15,625</span></div>
+      <div class="ref-row"><span class="ref-symbol">P</span><span class="ref-value">25</span></div>
+      <div class="ref-row"><span class="ref-symbol">O</span><span class="ref-value">78,125</span></div>
+      <div class="ref-row"><span class="ref-symbol">T</span><span class="ref-value">125</span></div>
+      <div class="ref-row"><span class="ref-symbol">N</span><span class="ref-value">390,625</span></div>
+      <div class="ref-row"><span class="ref-symbol">E</span><span class="ref-value">625</span></div>
+      <div class="ref-row"><span class="ref-symbol">A</span><span class="ref-value">1,953,125</span></div>
+    </div>
+    <p class="motto">Read in order: <strong>IVPTER SONA</strong> — Iuppiter sonat, "Jupiter sounds."</p>
+  </section>
+
+  <div class="footer">Range: 1 to 9,765,624 · Each symbol is 5× the previous · No subtractive notation</div>
+
+</div>
+<script>
+// ── IVPTER SONA ──────────────────────────────────────────────────────────────
+const IS = [
+  { ch:'A', v:1953125 }, { ch:'N', v:390625  }, { ch:'O', v:78125  },
+  { ch:'S', v:15625   }, { ch:'R', v:3125    }, { ch:'E', v:625    },
+  { ch:'T', v:125     }, { ch:'P', v:25      }, { ch:'V', v:5      },
+  { ch:'I', v:1       },
+];
+const IS_SET = new Set(IS.map(s => s.ch));
+
+function sanitizeIvpter(raw) {
+  const counts = {};
+  let out = '';
+  for (const ch of raw.toUpperCase()) {
+    if (!IS_SET.has(ch)) continue;      // strip invalid chars silently
+    counts[ch] = (counts[ch] || 0) + 1;
+    if (counts[ch] <= 4) out += ch;     // cap at 4 of any symbol
+  }
+  return out;
+}
+
+function ivpterToNum(str) {
+  const counts = {};
+  for (const ch of str) counts[ch] = (counts[ch] || 0) + 1;
+  let total = 0;
+  const parts = [];
+  for (const { ch, v } of IS) {
+    if (counts[ch]) {
+      total += counts[ch] * v;
+      parts.push(`${counts[ch]}×${v.toLocaleString()}`);
+    }
+  }
+  return { value: total, breakdown: parts.join(' + ') };
+}
+
+function numToIvpter(n) {
+  let rem = n, out = '';
+  const parts = [];
+  for (const { ch, v } of IS) {
+    const c = Math.floor(rem / v);
+    if (c > 0) { out += ch.repeat(c); parts.push(`${c}×${v.toLocaleString()}`); rem -= c * v; }
+  }
+  return { notation: out, breakdown: parts.join(' + ') };
+}
+
+// ── TRADITIONAL ROMAN ────────────────────────────────────────────────────────
+const TR_MAP = [
+  [1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],
+  [100,'C'],[90,'XC'],[50,'L'],[40,'XL'],
+  [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']
+];
+const TR_VALS = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 };
+const TR_SET  = new Set(Object.keys(TR_VALS));
+
+function sanitizeTrad(raw) {
+  return raw.toUpperCase().split('').filter(c => TR_SET.has(c)).join('');
+}
+
+function numToTrad(n) {
+  if (n < 1) return '';
+  // For numbers >= 4000 use parenthesis-vinculum: (IV) = 4000, etc.
+  if (n >= 4000) {
+    const hi = Math.floor(n / 1000);
+    const lo = n % 1000;
+    return '(' + basicTrad(hi) + ')' + (lo ? basicTrad(lo) : '');
+  }
+  return basicTrad(n);
+}
+
+function basicTrad(n) {
+  let rem = n, out = '';
+  for (const [v, s] of TR_MAP) while (rem >= v) { out += s; rem -= v; }
+  return out;
+}
+
+function tradToNum(str) {
+  // Handle vinculum: (XIV) means XIV * 1000
+  let total = 0, s = str.toUpperCase();
+  s = s.replace(/\(([IVXLCDM]+)\)/g, (_, inner) => {
+    total += basicTradToNum(inner) * 1000;
+    return '';
+  });
+  total += basicTradToNum(s);
+  return total;
+}
+
+function basicTradToNum(str) {
+  let total = 0;
+  for (let i = 0; i < str.length; i++) {
+    const cur  = TR_VALS[str[i]]   || 0;
+    const next = TR_VALS[str[i+1]] || 0;
+    total += cur < next ? -cur : cur;
+  }
+  return total;
+}
+
+// ── DOM WIRING ───────────────────────────────────────────────────────────────
+const fArabic  = document.getElementById('f-arabic');
+const fTrad    = document.getElementById('f-trad');
+const fIvpter  = document.getElementById('f-ivpter');
+const bArabic  = document.getElementById('b-arabic');
+const bTrad    = document.getElementById('b-trad');
+const bIvpter  = document.getElementById('b-ivpter');
+
+let lock = false;
+
+function fill(n) {
+  // Given a resolved integer n, populate the other two fields
+  if (n < 1 || isNaN(n)) { clear(); return; }
+  fTrad.value   = numToTrad(n);
+  bTrad.textContent = '';
+  const { notation, breakdown } = numToIvpter(n);
+  fIvpter.value = notation;
+  bIvpter.textContent = breakdown;
+  if (n > 9765624) {
+    fIvpter.value = '—';
+    bIvpter.textContent = 'exceeds IVPTER SONA range (max 9,765,624)';
+  }
+}
+
+function clear() {
+  fArabic.value = ''; bArabic.textContent = '';
+  fTrad.value   = ''; bTrad.textContent   = '';
+  fIvpter.value = ''; bIvpter.textContent = '';
+}
+
+fArabic.addEventListener('input', () => {
+  if (lock) return; lock = true;
+  const n = parseInt(fArabic.value, 10);
+  bArabic.textContent = '';
+  fill(n);
+  lock = false;
+});
+
+fTrad.addEventListener('input', () => {
+  if (lock) return; lock = true;
+  // Sanitize in place (strip non-Roman chars)
+  const pos = fTrad.selectionStart;
+  const sanitized = sanitizeTrad(fTrad.value);
+  fTrad.value = sanitized;
+  try { fTrad.setSelectionRange(pos, pos); } catch(_) {}
+
+  const n = tradToNum(sanitized);
+  bTrad.textContent = sanitized ? n.toLocaleString() : '';
+  if (!sanitized || n < 1) { fArabic.value = ''; bArabic.textContent = ''; fIvpter.value = ''; bIvpter.textContent = ''; }
+  else { fArabic.value = n; bArabic.textContent = ''; fill(n); fTrad.value = sanitized; bTrad.textContent = ''; }
+  lock = false;
+});
+
+fIvpter.addEventListener('input', () => {
+  if (lock) return; lock = true;
+  const pos = fIvpter.selectionStart;
+  const sanitized = sanitizeIvpter(fIvpter.value);
+  fIvpter.value = sanitized;
+  try { fIvpter.setSelectionRange(pos, pos); } catch(_) {}
+
+  if (!sanitized) { fArabic.value = ''; bArabic.textContent = ''; fTrad.value = ''; bTrad.textContent = ''; bIvpter.textContent = ''; }
+  else {
+    const { value, breakdown } = ivpterToNum(sanitized);
+    bIvpter.textContent = breakdown;
+    fArabic.value = value;
+    fTrad.value   = numToTrad(value);
+    bTrad.textContent = '';
+    bArabic.textContent = '';
+  }
+  lock = false;
+});
+</script>
+</body>
+</html>
